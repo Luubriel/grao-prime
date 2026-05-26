@@ -15,6 +15,27 @@ const options = {
       },
     ],
     components: {
+      schemas: {
+        ErrorResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: false,
+            },
+            message: {
+              type: 'string',
+              example: 'Mensagem de erro',
+            },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+              },
+            },
+          },
+        },
+      },
       securitySchemes: {
         bearerAuth: {
           type: 'http',
@@ -28,4 +49,3 @@ const options = {
 };
 
 module.exports = swaggerJsdoc(options);
-
