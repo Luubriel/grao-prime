@@ -80,6 +80,22 @@ async function findById(id) {
   return Coffee.findByPk(id, { include });
 }
 
+async function findAllActive() {
+  return Coffee.findAll({
+    where: { active: true },
+    include,
+    order: [['name', 'ASC']],
+  });
+}
+
+async function countAll() {
+  return Coffee.count();
+}
+
+async function countActive() {
+  return Coffee.count({ where: { active: true } });
+}
+
 async function create(data) {
   return Coffee.create(data);
 }
@@ -104,6 +120,9 @@ module.exports = {
   findCatalog,
   findPublicById,
   findById,
+  findAllActive,
+  countAll,
+  countActive,
   create,
   update,
   softDelete,

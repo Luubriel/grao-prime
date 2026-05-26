@@ -2,7 +2,10 @@ const { Router } = require('express');
 const authRoutes = require('./authRoutes');
 const brewingMethodRoutes = require('./brewingMethodRoutes');
 const categoryRoutes = require('./categoryRoutes');
+const chatbotRoutes = require('./chatbotRoutes');
 const coffeeRoutes = require('./coffeeRoutes');
+const dashboardRoutes = require('./dashboardRoutes');
+const recommendationRoutes = require('./recommendationRoutes');
 
 const router = Router();
 
@@ -47,6 +50,9 @@ router.get('/health', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/brewing-methods', brewingMethodRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/chatbot', chatbotRoutes);
 router.use('/coffees', coffeeRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/recommendations', recommendationRoutes);
 
 module.exports = router;

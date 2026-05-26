@@ -21,9 +21,11 @@ if (env.nodeEnv !== 'test') {
 }
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (req, res) => {
+  return res.status(200).json(swaggerSpec);
+});
 app.use(routes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
 module.exports = app;
-
