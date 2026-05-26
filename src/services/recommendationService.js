@@ -2,7 +2,7 @@ const AppError = require('../utils/AppError');
 const brewingMethodRepository = require('../repositories/brewingMethodRepository');
 const coffeeRepository = require('../repositories/coffeeRepository');
 const recommendationRepository = require('../repositories/recommendationRepository');
-const mlClient = require('../integrations/mlClient');
+const geminiClient = require('../integrations/geminiClient');
 
 const roastLevelScore = {
   CLARA: 1,
@@ -13,6 +13,7 @@ const roastLevelScore = {
 function serializeCoffee(coffee) {
   return {
     id: coffee.id,
+    coffeeId: coffee.id,
     name: coffee.name,
     description: coffee.description,
     categoryId: coffee.categoryId,
@@ -24,6 +25,16 @@ function serializeCoffee(coffee) {
     sweetness: coffee.sweetness,
     price: Number(coffee.price),
   };
+}
+
+function clampScore(score) {
+  const numericScore = Number(score);
+
+  if (!Number.isFinite(numericScore)) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, Number(numericScore.toFixed(2))));
 }
 
 function localScore(preferences, coffee) {
@@ -59,24 +70,48 @@ function fallbackRecommendations(preferences, coffees) {
     .slice(0, 5);
 }
 
-function normalizeMlResponse(response, coffees) {
-  const items = Array.isArray(response) ? response : response.recommendations;
+function parseGeminiResponse(response) {
+  if (typeof response === 'object' && response !== null) {
+    return response;
+  }
+
+  if (typeof response !== 'string') {
+    throw new Error('Resposta inválida da Gemini');
+  }
+
+  const sanitized = response
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  return JSON.parse(sanitized);
+}
+
+function normalizeGeminiRecommendations(response, coffees) {
+  const parsedResponse = parseGeminiResponse(response);
+  const items = Array.isArray(parsedResponse) ? parsedResponse : parsedResponse.recommendations;
 
   if (!Array.isArray(items) || items.length === 0) {
-    throw new Error('Resposta inválida do serviço de recomendação');
+    throw new Error('Resposta inválida da Gemini');
   }
 
   return items
     .map((item) => {
       const coffeeId = item.coffeeId || item.id || item.recommendedCoffeeId;
       const coffee = coffees.find((entry) => Number(entry.id) === Number(coffeeId));
+      const score = clampScore(item.score);
 
-      if (!coffee) return null;
+      if (!coffee || score === null) return null;
 
       return {
         coffee,
-        score: Number(item.score ?? 0),
-        reason: item.reason || 'Recomendação calculada pelo serviço de Machine Learning.',
+        score,
+        reason:
+          typeof item.reason === 'string' && item.reason.trim()
+            ? item.reason.trim().slice(0, 180)
+            : 'Recomendado por análise das preferências informadas.',
       };
     })
     .filter(Boolean)
@@ -103,14 +138,19 @@ async function create(preferences, user = null) {
   }
 
   const serializedCoffees = coffees.map(serializeCoffee);
-  let source = 'ML_SERVICE';
+  let provider = 'gemini';
   let recommendations;
 
   try {
-    const mlResponse = await mlClient.getRecommendations(preferences, serializedCoffees);
-    recommendations = normalizeMlResponse(mlResponse, serializedCoffees);
+    const geminiResponse = await geminiClient.getRecommendations(preferences, serializedCoffees);
+    recommendations = normalizeGeminiRecommendations(geminiResponse, serializedCoffees);
+
+    if (recommendations.length === 0) {
+      throw new Error('Gemini não retornou recomendações válidas');
+    }
   } catch (error) {
-    source = 'LOCAL_FALLBACK';
+    provider = 'local-fallback';
+    console.warn(`[recommendations] provider=local-fallback reason=${error.message}`);
     recommendations = fallbackRecommendations(preferences, serializedCoffees);
   }
 
@@ -126,13 +166,17 @@ async function create(preferences, user = null) {
       recommendedCoffeeId: item.coffee.id,
       score: item.score,
       reason: item.reason,
+      provider,
     })),
   );
 
   return {
-    source,
+    provider,
+    source: provider,
     recommendations: recommendations.map((item, index) => ({
       id: saved[index].id,
+      coffeeId: item.coffee.id,
+      name: item.coffee.name,
       coffee: item.coffee,
       score: item.score,
       reason: item.reason,
@@ -157,4 +201,3 @@ module.exports = {
   list,
   listByUser,
 };
-

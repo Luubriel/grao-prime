@@ -57,6 +57,11 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      provider: {
+        type: DataTypes.STRING(40),
+        allowNull: false,
+        defaultValue: 'local-fallback',
+      },
     },
     {
       tableName: 'recommendations',
@@ -74,4 +79,3 @@ module.exports = (sequelize) => {
 
   return Recommendation;
 };
-
