@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const authRoutes = require('./authRoutes');
+const brewingMethodRoutes = require('./brewingMethodRoutes');
 const categoryRoutes = require('./categoryRoutes');
 
 const router = Router();
@@ -43,6 +44,7 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', authRoutes);
+router.use('/brewing-methods', brewingMethodRoutes);
 router.use('/categories', categoryRoutes);
 
 module.exports = router;
