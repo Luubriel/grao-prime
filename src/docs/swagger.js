@@ -85,8 +85,47 @@ const options = {
             recommendedCoffeeId: { type: 'integer', example: 1 },
             score: { type: 'number', example: 85 },
             reason: { type: 'string' },
+            provider: { type: 'string', enum: ['gemini', 'local-fallback'], example: 'gemini' },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        RecommendationRequest: {
+          type: 'object',
+          required: [
+            'preferredIntensity',
+            'preferredAcidity',
+            'preferredBitterness',
+            'preferredSweetness',
+            'preferredRoastLevel',
+          ],
+          properties: {
+            preferredIntensity: { type: 'integer', minimum: 1, maximum: 5, example: 4 },
+            preferredAcidity: { type: 'integer', minimum: 1, maximum: 5, example: 2 },
+            preferredBitterness: { type: 'integer', minimum: 1, maximum: 5, example: 3 },
+            preferredSweetness: { type: 'integer', minimum: 1, maximum: 5, example: 4 },
+            preferredRoastLevel: {
+              type: 'string',
+              enum: ['CLARA', 'MEDIA', 'ESCURA'],
+              example: 'MEDIA',
+            },
+            preferredBrewingMethodId: { type: 'integer', nullable: true, example: 1 },
+          },
+        },
+        RecommendationResult: {
+          type: 'object',
+          properties: {
+            coffeeId: { type: 'integer', example: 1 },
+            name: { type: 'string', example: 'Grão Prime Bourbon' },
+            coffee: {
+              $ref: '#/components/schemas/Coffee',
+            },
+            score: { type: 'number', example: 92.5 },
+            reason: {
+              type: 'string',
+              example:
+                'Combina com sua preferência por cafés de torra média, boa doçura e baixa acidez.',
+            },
           },
         },
         ChatMessage: {

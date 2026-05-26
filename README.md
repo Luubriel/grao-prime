@@ -2,7 +2,7 @@
 
 Backend da aplicação **Grão Prime**, um sistema inteligente de recomendação de cafés.
 
-A API permite autenticação de usuários, gerenciamento administrativo de cafés, categorias e métodos de preparo, catálogo público com filtros, integração com serviço Python de Machine Learning para recomendação e endpoint de ChatBot.
+A API permite autenticação de usuários, gerenciamento administrativo de cafés, categorias e métodos de preparo, catálogo público com filtros, integração com Gemini API para recomendação inteligente e endpoint de ChatBot.
 
 ---
 
@@ -37,7 +37,7 @@ Não execute `git push`, `git fetch` ou `git pull` sem solicitação explícita.
 - cors
 - helmet
 - morgan
-- axios
+- @google/genai
 - zod
 - swagger-jsdoc
 - swagger-ui-express
@@ -96,10 +96,16 @@ JWT_SECRET=troque_essa_chave
 JWT_EXPIRES_IN=1d
 
 CORS_ORIGIN=http://localhost:5173
-ML_SERVICE_URL=http://localhost:8000
+
+GEMINI_API_KEY=coloque_sua_chave_aqui
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TIMEOUT_MS=15000
+GEMINI_ENABLED=true
 ```
 
 O arquivo `.env` não deve ser versionado.
+
+`GEMINI_API_KEY` deve ficar somente no backend. Use `GEMINI_ENABLED=false` para desligar a chamada externa e testar o fallback local.
 
 ---
 
@@ -364,26 +370,45 @@ DESC
 
 ---
 
-## 14. Integração com Machine Learning
+## 14. Recomendação com Gemini
 
-O backend se comunica com um serviço Python externo.
+O módulo de recomendação inteligente do Grão Prime foi migrado de um microserviço Python para um serviço de IA generativa consumido via API, utilizando Gemini, mantendo fallback local de recomendação por similaridade.
 
-URL configurada por:
+Configuração:
 
 ```env
-ML_SERVICE_URL=http://localhost:8000
+GEMINI_API_KEY=coloque_sua_chave_aqui
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TIMEOUT_MS=15000
+GEMINI_ENABLED=true
 ```
 
 Fluxo:
 
 1. O frontend envia preferências para `POST /recommendations`.
 2. O backend busca cafés ativos no MySQL.
-3. O backend envia preferências e cafés ao serviço Python.
-4. O serviço Python retorna cafés recomendados.
-5. O backend salva o histórico.
-6. O backend retorna o resultado ao frontend.
+3. O backend envia preferências e cafés disponíveis para Gemini.
+4. A resposta JSON da Gemini é validada.
+5. Cafés inexistentes ou inativos são descartados.
+6. O backend salva o histórico.
+7. O backend retorna o resultado ao frontend com `provider: "gemini"`.
 
-Caso o serviço Python esteja indisponível, o backend deve usar recomendação simples local por similaridade.
+Caso a Gemini API esteja indisponível, desativada ou sem chave configurada, o backend usa `provider: "local-fallback"` com recomendação simples por similaridade usando intensidade, acidez, amargor, doçura, torra e método de preparo.
+
+Exemplo:
+
+```bash
+curl -X POST http://localhost:3001/recommendations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "preferredIntensity": 4,
+    "preferredAcidity": 2,
+    "preferredBitterness": 3,
+    "preferredSweetness": 4,
+    "preferredRoastLevel": "MEDIA",
+    "preferredBrewingMethodId": 1
+  }'
+```
 
 ---
 
@@ -516,7 +541,7 @@ Este backend faz parte de um projeto acadêmico que integra:
 - Frontend React.
 - Backend Node.js.
 - Banco de dados MySQL.
-- Machine Learning com Python.
+- IA generativa consumida via API com Gemini.
 - ChatBot.
 - Swagger.
 
