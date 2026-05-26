@@ -1,6 +1,7 @@
 'use strict';
 
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 
 module.exports = {
   async up(queryInterface) {
@@ -8,102 +9,134 @@ module.exports = {
     const adminPassword = await bcrypt.hash('admin123', 10);
     const userPassword = await bcrypt.hash('user123', 10);
 
-    await queryInterface.bulkInsert('users', [
-      {
-        id: 1,
-        name: 'Administrador',
-        email: 'admin@graoprime.com',
-        password: adminPassword,
-        role: 'ADMIN',
-        created_at: now,
-        updated_at: now,
+    await queryInterface.bulkDelete('chat_messages', null, {});
+    await queryInterface.bulkDelete('recommendations', null, {});
+    await queryInterface.bulkDelete('coffees', {
+      name: {
+        [Op.in]: [
+        'Grão Prime Clássico',
+        'Montanhas do Sul',
+        'Espresso Prime',
+        'Orgânico Serra Verde',
+        'Descafeinado Suave',
+        ],
       },
-      {
-        id: 2,
-        name: 'Usuário Demonstração',
-        email: 'user@graoprime.com',
-        password: userPassword,
-        role: 'USER',
-        created_at: now,
-        updated_at: now,
-      },
-    ]);
+    });
 
-    await queryInterface.bulkInsert('categories', [
+    await queryInterface.bulkInsert(
+      'users',
+      [
+        {
+          id: 1,
+          name: 'Administrador',
+          email: 'admin@graoprime.com',
+          password: adminPassword,
+          role: 'ADMIN',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 2,
+          name: 'Usuário Demonstração',
+          email: 'user@graoprime.com',
+          password: userPassword,
+          role: 'USER',
+          created_at: now,
+          updated_at: now,
+        },
+      ],
       {
-        id: 1,
-        name: 'Tradicional',
-        description: 'Cafés equilibrados para consumo diário.',
-        created_at: now,
-        updated_at: now,
+        updateOnDuplicate: ['name', 'email', 'password', 'role', 'updated_at'],
       },
-      {
-        id: 2,
-        name: 'Especial',
-        description: 'Cafés de alta qualidade com perfis sensoriais marcantes.',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        id: 3,
-        name: 'Gourmet',
-        description: 'Cafés selecionados com torra cuidadosa.',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        id: 4,
-        name: 'Orgânico',
-        description: 'Cafés produzidos com manejo orgânico.',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        id: 5,
-        name: 'Descafeinado',
-        description: 'Cafés com teor reduzido de cafeína.',
-        created_at: now,
-        updated_at: now,
-      },
-    ]);
+    );
 
-    await queryInterface.bulkInsert('brewing_methods', [
+    await queryInterface.bulkInsert(
+      'categories',
+      [
+        {
+          id: 1,
+          name: 'Tradicional',
+          description: 'Cafés equilibrados para consumo diário.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 2,
+          name: 'Especial',
+          description: 'Cafés de alta qualidade com perfis sensoriais marcantes.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 3,
+          name: 'Gourmet',
+          description: 'Cafés selecionados com torra cuidadosa.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 4,
+          name: 'Orgânico',
+          description: 'Cafés produzidos com manejo orgânico.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 5,
+          name: 'Descafeinado',
+          description: 'Cafés com teor reduzido de cafeína.',
+          created_at: now,
+          updated_at: now,
+        },
+      ],
       {
-        id: 1,
-        name: 'Coado',
-        description: 'Preparo filtrado, limpo e versátil.',
-        created_at: now,
-        updated_at: now,
+        updateOnDuplicate: ['name', 'description', 'updated_at'],
       },
+    );
+
+    await queryInterface.bulkInsert(
+      'brewing_methods',
+      [
+        {
+          id: 1,
+          name: 'Coado',
+          description: 'Preparo filtrado, limpo e versátil.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 2,
+          name: 'Espresso',
+          description: 'Extração sob pressão, intensa e encorpada.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 3,
+          name: 'Prensa francesa',
+          description: 'Infusão com corpo alto e textura marcante.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 4,
+          name: 'Moka',
+          description: 'Preparo concentrado em cafeteira italiana.',
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: 5,
+          name: 'Aeropress',
+          description: 'Método flexível para bebidas limpas ou intensas.',
+          created_at: now,
+          updated_at: now,
+        },
+      ],
       {
-        id: 2,
-        name: 'Espresso',
-        description: 'Extração sob pressão, intensa e encorpada.',
-        created_at: now,
-        updated_at: now,
+        updateOnDuplicate: ['name', 'description', 'updated_at'],
       },
-      {
-        id: 3,
-        name: 'Prensa francesa',
-        description: 'Infusão com corpo alto e textura marcante.',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        id: 4,
-        name: 'Moka',
-        description: 'Preparo concentrado em cafeteira italiana.',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        id: 5,
-        name: 'Aeropress',
-        description: 'Método flexível para bebidas limpas ou intensas.',
-        created_at: now,
-        updated_at: now,
-      },
-    ]);
+    );
 
     await queryInterface.bulkInsert('coffees', [
       {
@@ -191,23 +224,30 @@ module.exports = {
 
   async down(queryInterface) {
     await queryInterface.bulkDelete('coffees', {
-      name: [
+      name: {
+        [Op.in]: [
         'Grão Prime Clássico',
         'Montanhas do Sul',
         'Espresso Prime',
         'Orgânico Serra Verde',
         'Descafeinado Suave',
-      ],
+        ],
+      },
     });
     await queryInterface.bulkDelete('brewing_methods', {
-      name: ['Coado', 'Espresso', 'Prensa francesa', 'Moka', 'Aeropress'],
+      name: {
+        [Op.in]: ['Coado', 'Espresso', 'Prensa francesa', 'Moka', 'Aeropress'],
+      },
     });
     await queryInterface.bulkDelete('categories', {
-      name: ['Tradicional', 'Especial', 'Gourmet', 'Orgânico', 'Descafeinado'],
+      name: {
+        [Op.in]: ['Tradicional', 'Especial', 'Gourmet', 'Orgânico', 'Descafeinado'],
+      },
     });
     await queryInterface.bulkDelete('users', {
-      email: ['admin@graoprime.com', 'user@graoprime.com'],
+      email: {
+        [Op.in]: ['admin@graoprime.com', 'user@graoprime.com'],
+      },
     });
   },
 };
-

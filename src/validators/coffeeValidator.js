@@ -41,7 +41,9 @@ const createCoffeeSchema = z.object({
 });
 
 const updateCoffeeSchema = z.object({
-  body: coffeeBody,
+  body: coffeeBody.partial().refine((data) => Object.keys(data).length > 0, {
+    message: 'Informe ao menos um campo para atualização',
+  }),
   params: z.object({
     id: idParam,
   }),
@@ -78,4 +80,3 @@ module.exports = {
   updateCoffeeSchema,
   listCoffeeSchema,
 };
-

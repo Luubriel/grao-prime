@@ -6,8 +6,8 @@ const coffeeRepository = require('../repositories/coffeeRepository');
 
 async function ensureRelationsExist({ categoryId, brewingMethodId }) {
   const [category, brewingMethod] = await Promise.all([
-    categoryRepository.findById(categoryId),
-    brewingMethodRepository.findById(brewingMethodId),
+    categoryId ? categoryRepository.findById(categoryId) : Promise.resolve(true),
+    brewingMethodId ? brewingMethodRepository.findById(brewingMethodId) : Promise.resolve(true),
   ]);
 
   if (!category) {
@@ -88,4 +88,3 @@ module.exports = {
   update,
   remove,
 };
-
