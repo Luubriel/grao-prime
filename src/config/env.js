@@ -1,10 +1,17 @@
 require('dotenv').config({ quiet: true });
 
+const geminiTimeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || 15000);
+
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 3001),
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  mlServiceUrl: process.env.ML_SERVICE_URL || 'http://localhost:8000',
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || null,
+    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    timeoutMs: Number.isFinite(geminiTimeoutMs) && geminiTimeoutMs > 0 ? geminiTimeoutMs : 15000,
+    enabled: process.env.GEMINI_ENABLED !== 'false',
+  },
   jwtSecret: process.env.JWT_SECRET || 'change_this_secret',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   db: {
