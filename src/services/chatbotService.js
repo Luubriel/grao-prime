@@ -90,7 +90,26 @@ async function listHistory(user, { page, limit }) {
   };
 }
 
+async function listAll({ page, limit, provider }) {
+  const { rows, count } = await chatMessageRepository.findAllPaginated({ page, limit, provider });
+
+  return {
+    messages: rows.map((entry) => ({
+      id: entry.id,
+      message: entry.message,
+      response: entry.response,
+      provider: entry.provider,
+      createdAt: entry.createdAt,
+      user: entry.User
+        ? { id: entry.User.id, name: entry.User.name, email: entry.User.email }
+        : null,
+    })),
+    pagination: buildPagination({ page, limit, total: count }),
+  };
+}
+
 module.exports = {
   reply,
   listHistory,
+  listAll,
 };

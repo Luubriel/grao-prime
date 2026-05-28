@@ -18,7 +18,17 @@ async function history(req, res) {
   });
 }
 
+async function adminHistory(req, res) {
+  const data = await chatbotService.listAll(req.validated.query);
+
+  return res.status(200).json({
+    success: true,
+    data,
+  });
+}
+
 module.exports = {
   message,
   history,
+  adminHistory,
 };

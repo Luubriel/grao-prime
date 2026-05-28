@@ -17,6 +17,27 @@ async function findAll() {
   });
 }
 
+async function findAllPaginated({ page, limit, provider }) {
+  const where = {};
+
+  if (provider) {
+    where.provider = provider;
+  }
+
+  return ChatMessage.findAndCountAll({
+    where,
+    include: [
+      {
+        model: User,
+        attributes: ['id', 'name', 'email'],
+      },
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset: getOffset(page, limit),
+  });
+}
+
 async function findByUserPaginated(userId, page, limit) {
   return ChatMessage.findAndCountAll({
     where: { userId },
@@ -39,6 +60,7 @@ async function findRecentByUserId(userId, limit = 6) {
 module.exports = {
   create,
   findAll,
+  findAllPaginated,
   findByUserPaginated,
   findRecentByUserId,
 };

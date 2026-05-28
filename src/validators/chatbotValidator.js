@@ -17,7 +17,18 @@ const chatbotHistorySchema = z.object({
   }),
 });
 
+const chatbotAdminHistorySchema = z.object({
+  body: z.object({}).optional(),
+  params: z.object({}).optional(),
+  query: z.object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(20),
+    provider: z.enum(['gemini', 'local']).optional(),
+  }),
+});
+
 module.exports = {
   chatbotMessageSchema,
   chatbotHistorySchema,
+  chatbotAdminHistorySchema,
 };

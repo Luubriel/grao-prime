@@ -1,12 +1,17 @@
 const { Router } = require('express');
 
 const chatbotController = require('../controllers/chatbotController');
+const adminMiddleware = require('../middlewares/adminMiddleware');
 const asyncHandler = require('../middlewares/asyncHandler');
 const authMiddleware = require('../middlewares/authMiddleware');
 const optionalAuthMiddleware = require('../middlewares/optionalAuthMiddleware');
 const { createRateLimiter } = require('../middlewares/rateLimitMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { chatbotHistorySchema, chatbotMessageSchema } = require('../validators/chatbotValidator');
+const {
+  chatbotAdminHistorySchema,
+  chatbotHistorySchema,
+  chatbotMessageSchema,
+} = require('../validators/chatbotValidator');
 
 const router = Router();
 
@@ -66,6 +71,43 @@ router.get(
   authMiddleware,
   validate(chatbotHistorySchema),
   asyncHandler(chatbotController.history),
+);
+
+/**
+ * @swagger
+ * /chatbot/admin/messages:
+ *   get:
+ *     summary: Lista todas as mensagens do ChatBot (admin).
+ *     tags:
+ *       - ChatBot
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: provider
+ *         schema:
+ *           type: string
+ *           enum: [gemini, local]
+ *     responses:
+ *       200:
+ *         description: Histórico paginado com usuários.
+ */
+router.get(
+  '/admin/messages',
+  authMiddleware,
+  adminMiddleware,
+  validate(chatbotAdminHistorySchema),
+  asyncHandler(chatbotController.adminHistory),
 );
 
 module.exports = router;
