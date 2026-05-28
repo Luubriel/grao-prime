@@ -9,7 +9,16 @@ async function message(req, res) {
   });
 }
 
+async function history(req, res) {
+  const data = await chatbotService.listHistory(req.user, req.validated.query);
+
+  return res.status(200).json({
+    success: true,
+    data,
+  });
+}
+
 module.exports = {
   message,
+  history,
 };
-

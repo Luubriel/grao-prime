@@ -3,6 +3,7 @@ const coffeeRepository = require('../repositories/coffeeRepository');
 const chatbotEngine = require('../integrations/chatbotEngine');
 const geminiClient = require('../integrations/geminiClient');
 const env = require('../config/env');
+const { buildPagination } = require('../utils/pagination');
 
 const HISTORY_LIMIT = 6;
 
@@ -62,6 +63,7 @@ async function reply(message, user = null) {
     userId: user?.id || null,
     message,
     response,
+    provider,
   });
 
   return {
@@ -73,6 +75,22 @@ async function reply(message, user = null) {
   };
 }
 
+async function listHistory(user, { page, limit }) {
+  const { rows, count } = await chatMessageRepository.findByUserPaginated(user.id, page, limit);
+
+  return {
+    messages: rows.map((entry) => ({
+      id: entry.id,
+      message: entry.message,
+      response: entry.response,
+      provider: entry.provider,
+      createdAt: entry.createdAt,
+    })),
+    pagination: buildPagination({ page, limit, total: count }),
+  };
+}
+
 module.exports = {
   reply,
+  listHistory,
 };

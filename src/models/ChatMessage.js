@@ -22,6 +22,11 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      provider: {
+        type: DataTypes.STRING(40),
+        allowNull: false,
+        defaultValue: 'local',
+      },
     },
     {
       tableName: 'chat_messages',

@@ -8,7 +8,16 @@ const chatbotMessageSchema = z.object({
   query: z.object({}).optional(),
 });
 
+const chatbotHistorySchema = z.object({
+  body: z.object({}).optional(),
+  params: z.object({}).optional(),
+  query: z.object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(50).default(20),
+  }),
+});
+
 module.exports = {
   chatbotMessageSchema,
+  chatbotHistorySchema,
 };
-

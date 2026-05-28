@@ -1,4 +1,5 @@
 const { ChatMessage, User } = require('../models');
+const { getOffset } = require('../utils/pagination');
 
 async function create(data) {
   return ChatMessage.create(data);
@@ -16,6 +17,15 @@ async function findAll() {
   });
 }
 
+async function findByUserPaginated(userId, page, limit) {
+  return ChatMessage.findAndCountAll({
+    where: { userId },
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset: getOffset(page, limit),
+  });
+}
+
 async function findRecentByUserId(userId, limit = 6) {
   const messages = await ChatMessage.findAll({
     where: { userId },
@@ -29,6 +39,7 @@ async function findRecentByUserId(userId, limit = 6) {
 module.exports = {
   create,
   findAll,
+  findByUserPaginated,
   findRecentByUserId,
 };
 
