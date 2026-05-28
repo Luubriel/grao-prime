@@ -1,15 +1,19 @@
 const { GoogleGenAI } = require('@google/genai');
 
 const env = require('../config/env');
+const geminiCache = require('./geminiCache');
 
-function buildChatPrompt(userMessage, { coffees, history }) {
-  const historyBlock =
-    Array.isArray(history) && history.length > 0
-      ? history
-          .map((entry) => `Usuário: ${entry.message}\nAssistente: ${entry.response}`)
-          .join('\n\n')
-      : 'Nenhuma conversa anterior.';
+let aiInstance = null;
 
+function getAi() {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: env.gemini.apiKey });
+  }
+
+  return aiInstance;
+}
+
+function buildChatSystemInstruction(coffees) {
   return `
 Você é o assistente virtual do Grão Prime, uma loja de cafés especiais.
 
@@ -27,7 +31,18 @@ Regras obrigatórias:
 
 Catálogo disponível (use somente esses cafés ao recomendar):
 ${JSON.stringify(coffees, null, 2)}
+`.trim();
+}
 
+function buildChatUserContents(userMessage, history) {
+  const historyBlock =
+    Array.isArray(history) && history.length > 0
+      ? history
+          .map((entry) => `Usuário: ${entry.message}\nAssistente: ${entry.response}`)
+          .join('\n\n')
+      : 'Nenhuma conversa anterior.';
+
+  return `
 Histórico recente da conversa:
 ${historyBlock}
 
@@ -38,7 +53,7 @@ ${userMessage}
 `.trim();
 }
 
-function buildRecommendationPrompt(preferences, coffees) {
+function buildRecommendationSystemInstruction(coffees) {
   return `
 Você é o motor de recomendação do sistema Grão Prime.
 
@@ -67,11 +82,15 @@ Formato obrigatório da resposta:
   ]
 }
 
-Preferências do usuário:
-${JSON.stringify(preferences, null, 2)}
-
 Cafés disponíveis:
 ${JSON.stringify(coffees, null, 2)}
+`.trim();
+}
+
+function buildRecommendationUserContents(preferences) {
+  return `
+Preferências do usuário:
+${JSON.stringify(preferences, null, 2)}
 `.trim();
 }
 
@@ -99,26 +118,60 @@ async function withTimeout(promise, timeoutMs) {
   }
 }
 
+async function generateWithOptionalCache({ kind, systemInstruction, contents, responseMimeType }) {
+  const ai = getAi();
+  let cacheName = null;
+
+  if (env.gemini.cacheEnabled) {
+    cacheName = await geminiCache.getOrCreateCache(ai, {
+      kind,
+      model: env.gemini.model,
+      systemInstruction,
+    });
+  }
+
+  const config = { responseMimeType };
+
+  if (cacheName) {
+    config.cachedContent = cacheName;
+  }
+
+  const request = {
+    model: env.gemini.model,
+    contents,
+    config,
+  };
+
+  if (!cacheName) {
+    request.config.systemInstruction = systemInstruction;
+  }
+
+  const response = await withTimeout(
+    ai.models.generateContent(request),
+    env.gemini.timeoutMs,
+  );
+
+  return { response, cached: Boolean(cacheName) };
+}
+
 async function getRecommendations(preferences, coffees) {
   ensureGeminiIsConfigured();
 
   const startedAt = Date.now();
-  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey });
-  const prompt = buildRecommendationPrompt(preferences, coffees);
+  const systemInstruction = buildRecommendationSystemInstruction(coffees);
+  const contents = buildRecommendationUserContents(preferences);
 
-  const response = await withTimeout(
-    ai.models.generateContent({
-      model: env.gemini.model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    }),
-    env.gemini.timeoutMs,
-  );
+  const { response, cached } = await generateWithOptionalCache({
+    kind: 'recommendations',
+    systemInstruction,
+    contents,
+    responseMimeType: 'application/json',
+  });
 
   console.log(
-    `[recommendations] provider=gemini durationMs=${Date.now() - startedAt} coffees=${coffees.length}`,
+    `[recommendations] provider=gemini cached=${cached} durationMs=${
+      Date.now() - startedAt
+    } coffees=${coffees.length}`,
   );
 
   return response.text;
@@ -128,27 +181,23 @@ async function getChatReply(userMessage, context = {}) {
   ensureGeminiIsConfigured();
 
   const startedAt = Date.now();
-  const ai = new GoogleGenAI({ apiKey: env.gemini.apiKey });
-  const prompt = buildChatPrompt(userMessage, {
-    coffees: Array.isArray(context.coffees) ? context.coffees : [],
-    history: Array.isArray(context.history) ? context.history : [],
+  const coffees = Array.isArray(context.coffees) ? context.coffees : [];
+  const history = Array.isArray(context.history) ? context.history : [];
+
+  const systemInstruction = buildChatSystemInstruction(coffees);
+  const contents = buildChatUserContents(userMessage, history);
+
+  const { response, cached } = await generateWithOptionalCache({
+    kind: 'chat',
+    systemInstruction,
+    contents,
+    responseMimeType: 'text/plain',
   });
 
-  const response = await withTimeout(
-    ai.models.generateContent({
-      model: env.gemini.model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'text/plain',
-      },
-    }),
-    env.gemini.timeoutMs,
-  );
-
   console.log(
-    `[chatbot] provider=gemini durationMs=${Date.now() - startedAt} historyLen=${
-      context.history?.length || 0
-    }`,
+    `[chatbot] provider=gemini cached=${cached} durationMs=${
+      Date.now() - startedAt
+    } historyLen=${history.length}`,
   );
 
   const text = typeof response.text === 'string' ? response.text.trim() : '';
