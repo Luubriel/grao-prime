@@ -16,8 +16,19 @@ async function findAll() {
   });
 }
 
+async function findRecentByUserId(userId, limit = 6) {
+  const messages = await ChatMessage.findAll({
+    where: { userId },
+    order: [['createdAt', 'DESC']],
+    limit,
+  });
+
+  return messages.reverse();
+}
+
 module.exports = {
   create,
   findAll,
+  findRecentByUserId,
 };
 
